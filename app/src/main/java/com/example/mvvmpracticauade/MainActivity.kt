@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,15 +28,19 @@ import androidx.compose.ui.unit.dp
 import com.example.mvvmpracticauade.ui.theme.MVVMPracticaUADETheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.getValue
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val viewModel: NotaViewModel by viewModels()
+
         enableEdgeToEdge()
         setContent {
             MVVMPracticaUADETheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
-                    NotaScreenHost(modifier = Modifier.padding(padding))
+                    NotaScreenHost(notaViewModel = viewModel, modifier = Modifier.padding(padding))
 
 
                 }
@@ -93,36 +98,14 @@ fun NotaScreen(estado: NotaUiState, modifier: Modifier = Modifier, onTitular: (S
 }
 
 @Composable
-fun NotaScreenHost(modifier: Modifier){
-    var textoTitulo by remember {mutableStateOf("")}
-    var textoContenido by remember {mutableStateOf("")}
-
-    val scope = rememberCoroutineScope()
-
-
-    var estado by remember { mutableStateOf(NotaUiState(
-        titulo = textoTitulo,
-        contenido = textoContenido,
-        errorValidacion = "",
-        operacionEnCurso = false
-    )) }
+fun NotaScreenHost(notaViewModel: NotaViewModel, modifier: Modifier){
 
 
     NotaScreen(
-        estado =estado,
-        onTitular = { estado = estado.copy(titulo = it, errorValidacion = "") },
-        onContenido = { estado = estado.copy(contenido = it, errorValidacion = "") },
-        onGuardar = {
-            if (estado.titulo.isBlank()) {
-                estado = estado.copy(errorValidacion = "El título no puede estar vacío")
-            } else {
-                scope.launch {
-                    estado = estado.copy(operacionEnCurso = true)
-                    delay(1500)   // simula el guardado
-                    estado = estado.copy(operacionEnCurso = false)
-                }
-            }
-        },
+        estado =notaViewModel.estado,
+        onTitular = notaViewModel::onTitularChange,
+        onContenido = notaViewModel::onContenidoChange,
+        onGuardar = notaViewModel::onGuardar,
         modifier = modifier
     )
 }
