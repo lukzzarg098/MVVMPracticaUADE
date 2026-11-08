@@ -61,6 +61,8 @@ fun NotaScreen(estado: NotaUiState, modifier: Modifier = Modifier, onTitular: (S
             value = estado.titulo,
             onValueChange = onTitular,
             label = { Text("Título") },
+            isError = estado.errorTitulo.isNotEmpty(),
+            supportingText = { if (estado.errorTitulo.isNotEmpty()) Text(estado.errorTitulo) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -69,13 +71,16 @@ fun NotaScreen(estado: NotaUiState, modifier: Modifier = Modifier, onTitular: (S
             value = estado.contenido,
             onValueChange = onContenido ,
             label = { Text("Contenido") },
+            isError = estado.errorContenido.isNotEmpty(),
+            supportingText = { if (estado.errorContenido.isNotEmpty()) Text(estado.errorContenido) },
             minLines = 5,
             modifier = Modifier.fillMaxWidth()
         )
 
-        if (estado.errorValidacion.isNotEmpty()) {
-            Text(estado.errorValidacion, color = MaterialTheme.colorScheme.error)
-        }
+        // Reemplazado por los errores de cada campo (supportingText)
+        // if (estado.errorValidacion.isNotEmpty()) {
+        //     Text(estado.errorValidacion, color = MaterialTheme.colorScheme.error)
+        // }
 
         Button(
             onClick = onGuardar,
@@ -115,7 +120,7 @@ fun NotaScreenPreview() {
             estado = NotaUiState(
                 titulo = "Compras",
                 contenido = "",
-                errorValidacion = "El título no puede estar vacío",
+                errorContenido = "El contenido debe tener al menos 10 caracteres",
                 operacionEnCurso = false
             ),
             // En el Preview no hay nadie que maneje los eventos: lambdas vacías

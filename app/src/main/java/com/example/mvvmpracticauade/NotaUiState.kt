@@ -3,8 +3,11 @@ package com.example.mvvmpracticauade
 data class NotaUiState(
     val titulo: String = "",
     val contenido: String = "",
-    val errorValidacion: String = "",
-    var operacionEnCurso: Boolean = false
+    // Reemplazado por errorTitulo y errorContenido (un error por campo)
+    // val errorValidacion: String = "",
+    val operacionEnCurso: Boolean = false,
+    val errorTitulo: String = "",
+    val errorContenido: String = ""
 )
 
 
