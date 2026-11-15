@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
-class NotaViewModel (private val repository: NotaRepository = NotaRepositoryEnMemoria() ) : ViewModel() {
+class NotaViewModel (private val repository: NotaRepository = NotaRepositoryEnMemoria()) : ViewModel() {
 // Estado y operaciones; no dibujar UI aqui
 
     private val _uiState = MutableStateFlow(NotaUiState())
