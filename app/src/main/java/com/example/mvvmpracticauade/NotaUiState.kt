@@ -6,6 +6,7 @@ data class NotaUiState(
 
 
     val notas: List<Nota> = emptyList(),
+    val archivoTexto: String = "",
     val titulo: String = "",
     val contenido: String = "",
     // Reemplazado por errorTitulo y errorContenido (un error por campo)

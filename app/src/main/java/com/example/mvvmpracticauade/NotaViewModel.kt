@@ -12,7 +12,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
-class NotaViewModel (private val repository: NotaRepository = NotaRepositoryEnMemoria()) : ViewModel() {
+class NotaViewModel (private val repository: NotaRepository = NotaRepositoryEnMemoria(),
+                     private val fileRepository: FileNotaRepository
+) : ViewModel()
+ {
 // Estado y operaciones; no dibujar UI aqui
 
     private val _uiState = MutableStateFlow(NotaUiState())
@@ -20,6 +23,7 @@ class NotaViewModel (private val repository: NotaRepository = NotaRepositoryEnMe
 
     init {
         obtenerTodasLasNotas()
+        leerArchivo()
 
     }
 
@@ -97,6 +101,14 @@ class NotaViewModel (private val repository: NotaRepository = NotaRepositoryEnMe
 
 
 
+    }
+
+    fun leerArchivo(){
+        viewModelScope.launch {
+            _uiState.update { it.copy(operacionEnCurso = true) }
+            _uiState.update { it.copy(archivoTexto = fileRepository.leerArchivo()) }
+            _uiState.update { it.copy(operacionEnCurso = false) }
+            }
     }
 
 

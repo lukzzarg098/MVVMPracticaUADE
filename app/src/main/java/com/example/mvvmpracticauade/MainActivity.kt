@@ -22,9 +22,12 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.mvvmpracticauade.ui.theme.MVVMPracticaUADETheme
 import java.util.UUID
 
@@ -32,7 +35,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val viewModel: NotaViewModel by viewModels()
+        val archivoTextoRepository: FileNotaRepository =
+            FileNotaRepositoryImplementacion(applicationContext.filesDir)
+        val notaRepository: NotaRepository = NotaRepositoryPrecargado()
+
+        val viewModel: NotaViewModel by viewModels{
+            viewModelFactory {
+                initializer { NotaViewModel(notaRepository, archivoTextoRepository) }
+            }
+        }
+
 
         enableEdgeToEdge()
         setContent {
@@ -99,8 +111,35 @@ fun NotaScreen(estado: NotaUiState, modifier: Modifier = Modifier, onTitular: (S
             }
         }
 
+        Borrador(texto = estado.archivoTexto)
+
         // weight(1f): la lista ocupa el espacio que queda debajo del formulario y scrollea ahi
         ListaNotas(notas = estado.notas, modifier = Modifier.weight(1f))
+    }
+}
+
+// Muestra el texto del borrador que ya viene en el estado. No sabe que existe un archivo:
+// la lectura la hace el Repository y el ViewModel solo publica el String.
+@Composable
+fun Borrador(texto: String, modifier: Modifier = Modifier) {
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text("Borrador", style = MaterialTheme.typography.titleMedium)
+            if (texto.isEmpty()) {
+                Text(
+                    "No hay borrador guardado",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    texto,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 6,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
     }
 }
 
@@ -154,6 +193,7 @@ fun NotaScreenPreview() {
                 contenido = "",
                 errorContenido = "El contenido debe tener al menos 10 caracteres",
                 operacionEnCurso = false,
+                archivoTexto = "Ideas sueltas para la próxima clase:\n- repasar withContext\n- probar Device Explorer",
                 notas = listOf(
                     Nota(nombre = "Ideas proyecto", contenido = "Armar el repository en memoria"),
                     Nota(nombre = "Turno médico", contenido = "Martes 10 hs, llevar estudios")
