@@ -5,8 +5,7 @@ import java.io.File
 interface FileNotaRepository {
 
     suspend fun leerArchivo(): String
-
-    suspend fun escribirArchivo(texto: String): Boolean
+    suspend fun escribirArchivo(texto: String)
 
 
 }

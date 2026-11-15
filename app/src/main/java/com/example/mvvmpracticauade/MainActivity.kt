@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -20,9 +21,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -37,7 +40,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // PRUEBA Ejercicio 9: repositorio que siempre falla. Para volver al real, descomentar la línea de abajo
+        // y borrar FileNotaRepositoryConError().
         val archivoTextoRepository: FileNotaRepository =
+            //FileNotaRepositoryConError()
             FileNotaRepositoryImplementacion(applicationContext.filesDir)
         val notaRepository: NotaRepository = NotaRepositoryPrecargado()
 
@@ -76,7 +82,8 @@ fun NotaScreen(
     onContenido: (String) -> Unit,
     onGuardar: () -> Unit,
     onGuardarBorrador: () -> Unit,
-    onDescartar: () -> Unit
+    onDescartar: () -> Unit,
+    onReintentar: () -> Unit
 ) {
     Column(
         modifier = modifier
@@ -104,10 +111,6 @@ fun NotaScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Reemplazado por los errores de cada campo (supportingText)
-        // if (estado.errorValidacion.isNotEmpty()) {
-        //     Text(estado.errorValidacion, color = MaterialTheme.colorScheme.error)
-        // }
 
         Button(
             onClick = onGuardar,
@@ -123,9 +126,12 @@ fun NotaScreen(
 
         AccionesBorrador(
             hayCambiosSinGuardar = estado.hayCambiosSinGuardar,
-            operacionEnCurso = estado.operacionEnCurso,
+            enCurso = estado.lecturaEscrituraEnCurso,
+            errorLectura = estado.errorFalloLectura,
+            errorEscritura = estado.errorFalloEscritura,
             onGuardarBorrador = onGuardarBorrador,
-            onDescartar = onDescartar
+            onDescartar = onDescartar,
+            onReintentar = onReintentar
         )
 
         Borrador(texto = estado.archivoTexto)
@@ -135,25 +141,57 @@ fun NotaScreen(
     }
 }
 
-// Indicador de cambios sin guardar + botones del borrador. Solo dibuja lo que recibe:
-// si hay cambios o no lo decide el estado, no la pantalla.
+// Estado del borrador (cargando / error / sin guardar / guardado) + botones. Solo dibuja lo que recibe:
+// qué estado corresponde lo decide el ViewModel, no la pantalla.
 @Composable
 fun AccionesBorrador(
     hayCambiosSinGuardar: Boolean,
-    operacionEnCurso: Boolean,
+    enCurso: Boolean,
+    errorLectura: String,
+    errorEscritura: String,
     onGuardarBorrador: () -> Unit,
     onDescartar: () -> Unit,
+    onReintentar: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (hayCambiosSinGuardar) {
-            Text(
+        // Una sola línea de estado; el orden del when define la prioridad
+        when {
+            enCurso -> Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                Text("Procesando borrador…", style = MaterialTheme.typography.bodyMedium)
+            }
+
+            // Si falló la lectura se ofrece reintentar (vuelve a llamar a leerArchivo)
+            errorLectura.isNotEmpty() -> Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    errorLectura,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(onClick = onReintentar) {
+                    Text("Reintentar")
+                }
+            }
+
+            // Si falló la escritura, los cambios siguen en pantalla: se puede volver a "Guardar borrador"
+            errorEscritura.isNotEmpty() -> Text(
+                errorEscritura,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
+            )
+
+            hayCambiosSinGuardar -> Text(
                 "● Cambios sin guardar",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error
             )
-        } else {
-            Text(
+
+            else -> Text(
                 "✓ Borrador guardado",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary
@@ -163,14 +201,14 @@ fun AccionesBorrador(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
                 onClick = onGuardarBorrador,
-                enabled = !operacionEnCurso && hayCambiosSinGuardar,
+                enabled = !enCurso && hayCambiosSinGuardar,
                 modifier = Modifier.weight(1f)
             ) {
                 Text("Guardar borrador")
             }
             OutlinedButton(
                 onClick = onDescartar,
-                enabled = !operacionEnCurso && hayCambiosSinGuardar,
+                enabled = !enCurso && hayCambiosSinGuardar,
                 modifier = Modifier.weight(1f)
             ) {
                 Text("Descartar cambios")
@@ -242,6 +280,7 @@ fun NotaScreenHost(notaViewModel: NotaViewModel, modifier: Modifier){
         onGuardar = notaViewModel::onGuardar,
         onGuardarBorrador = notaViewModel::escribirArchivo,
         onDescartar = notaViewModel::descartarCambios,
+        onReintentar = notaViewModel::leerArchivo,
         modifier = modifier
     )
 }
@@ -267,7 +306,8 @@ fun NotaScreenPreview() {
             onContenido = {},
             onGuardar = {},
             onGuardarBorrador = {},
-            onDescartar = {}
+            onDescartar = {},
+            onReintentar = {}
         )
     }
 }

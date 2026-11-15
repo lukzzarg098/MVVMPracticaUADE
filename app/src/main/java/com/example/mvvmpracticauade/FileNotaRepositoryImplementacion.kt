@@ -22,11 +22,8 @@ class FileNotaRepositoryImplementacion(private val carpeta: File) : FileNotaRepo
         return contenido
     }
 
-    override suspend fun escribirArchivo(texto: String): Boolean {
-        var guardado = false
-        try{
+    override suspend fun escribirArchivo(texto: String) {
             withContext(Dispatchers.IO){
-
                 val archivo = File(carpeta, "borrador.txt")
                 if (!archivo.exists()){
                     archivo.createNewFile()
@@ -35,13 +32,6 @@ class FileNotaRepositoryImplementacion(private val carpeta: File) : FileNotaRepo
                 else{
                     archivo.writeText(texto, Charsets.UTF_8)
                 }
-                guardado = true
-
             }
-        }
-        catch (e: Exception){
-            guardado = false
-        }
-        return guardado
     }
 }

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 import kotlin.time.Duration.Companion.milliseconds
 
 class NotaViewModel (private val repository: NotaRepository = NotaRepositoryEnMemoria(),
@@ -87,16 +88,25 @@ class NotaViewModel (private val repository: NotaRepository = NotaRepositoryEnMe
         var contenido = ""
 
         viewModelScope.launch {
-            _uiState.update { it.copy(operacionEnCurso = true) }
+            _uiState.update { it.copy(lecturaEscrituraEnCurso = true) }
 
-            archivoLeido = fileRepository.leerArchivo()
+            try {
 
-            if (archivoLeido.isNotEmpty()){
-                val partes = archivoLeido.split("\n")
-                titulo = partes[0]
-                contenido = partes.subList(1, partes.size).joinToString("\n")}
-            _uiState.update {it.copy(titulo= titulo, contenido = contenido, archivoTexto = archivoLeido) }
-            _uiState.update { it.copy(operacionEnCurso = false) }
+                archivoLeido = fileRepository.leerArchivo()
+
+                if (archivoLeido.isNotEmpty()){
+                    val partes = archivoLeido.split("\n")
+                    titulo = partes[0]
+                    contenido = partes.subList(1, partes.size).joinToString("\n")}
+                _uiState.update {it.copy(titulo= titulo, contenido = contenido, archivoTexto = archivoLeido, errorFalloLectura = "") }
+
+            }
+            catch (e: IOException){
+                _uiState.update { it.copy(errorFalloLectura = "Error al leer el archivo") }
+            }
+
+
+            _uiState.update { it.copy(lecturaEscrituraEnCurso = false) }
             }
     }
 
@@ -109,12 +119,22 @@ class NotaViewModel (private val repository: NotaRepository = NotaRepositoryEnMe
          val nuevoTexto = _uiState.value.titulo + "\n" + _uiState.value.contenido
 
          viewModelScope.launch {
-             _uiState.update { it.copy(operacionEnCurso = true) }
-             val guardado = fileRepository.escribirArchivo(nuevoTexto)
-             if (guardado){
+             _uiState.update { it.copy(lecturaEscrituraEnCurso = true) }
+
+             try{
+
+                  fileRepository.escribirArchivo(nuevoTexto)
                  _uiState.update { it.copy(archivoTexto = nuevoTexto) }
+                 _uiState.update { it.copy(errorFalloEscritura = "") }
+
              }
-             _uiState.update { it.copy(operacionEnCurso = false) }
+             catch (e: IOException){
+
+                 _uiState.update { it.copy(errorFalloEscritura = "Error al escribir el archivo") }
+
+             }
+
+             _uiState.update { it.copy(lecturaEscrituraEnCurso = false) }
          }
 
      }
