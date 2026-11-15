@@ -11,36 +11,37 @@ class FileNotaRepositoryImplementacion(private val carpeta: File) : FileNotaRepo
     override suspend fun leerArchivo(): String {
         var contenido = ""
         withContext(Dispatchers.IO){
-
-
-
-
-
             val archivo = File(carpeta, "borrador.txt")
-
             if (!archivo.exists()){
                 contenido =  ""
             }
             else{
                 contenido = archivo.readText(Charsets.UTF_8)
-
             }
-
-
-
         }
         return contenido
-
-
-
-
-
-
-
-
-
-
     }
 
+    override suspend fun escribirArchivo(texto: String): Boolean {
+        var guardado = false
+        try{
+            withContext(Dispatchers.IO){
 
+                val archivo = File(carpeta, "borrador.txt")
+                if (!archivo.exists()){
+                    archivo.createNewFile()
+                    archivo.writeText(texto, Charsets.UTF_8)
+                }
+                else{
+                    archivo.writeText(texto, Charsets.UTF_8)
+                }
+                guardado = true
+
+            }
+        }
+        catch (e: Exception){
+            guardado = false
+        }
+        return guardado
+    }
 }

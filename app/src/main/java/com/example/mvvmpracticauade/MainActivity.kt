@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -67,7 +69,15 @@ data class Nota(
 
 // La pantalla solo DIBUJA lo que viene en `estado`. No guarda copias propias del texto.
 @Composable
-fun NotaScreen(estado: NotaUiState, modifier: Modifier = Modifier, onTitular: (String) -> Unit, onContenido: (String) -> Unit, onGuardar: () -> Unit) {
+fun NotaScreen(
+    estado: NotaUiState,
+    modifier: Modifier = Modifier,
+    onTitular: (String) -> Unit,
+    onContenido: (String) -> Unit,
+    onGuardar: () -> Unit,
+    onGuardarBorrador: () -> Unit,
+    onDescartar: () -> Unit
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -107,14 +117,65 @@ fun NotaScreen(estado: NotaUiState, modifier: Modifier = Modifier, onTitular: (S
             if (estado.operacionEnCurso) {
                 CircularProgressIndicator()
             } else {
-                Text("Guardar")
+                Text("Guardar nota")
             }
         }
+
+        AccionesBorrador(
+            hayCambiosSinGuardar = estado.hayCambiosSinGuardar,
+            operacionEnCurso = estado.operacionEnCurso,
+            onGuardarBorrador = onGuardarBorrador,
+            onDescartar = onDescartar
+        )
 
         Borrador(texto = estado.archivoTexto)
 
         // weight(1f): la lista ocupa el espacio que queda debajo del formulario y scrollea ahi
         ListaNotas(notas = estado.notas, modifier = Modifier.weight(1f))
+    }
+}
+
+// Indicador de cambios sin guardar + botones del borrador. Solo dibuja lo que recibe:
+// si hay cambios o no lo decide el estado, no la pantalla.
+@Composable
+fun AccionesBorrador(
+    hayCambiosSinGuardar: Boolean,
+    operacionEnCurso: Boolean,
+    onGuardarBorrador: () -> Unit,
+    onDescartar: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (hayCambiosSinGuardar) {
+            Text(
+                "● Cambios sin guardar",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
+            )
+        } else {
+            Text(
+                "✓ Borrador guardado",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = onGuardarBorrador,
+                enabled = !operacionEnCurso && hayCambiosSinGuardar,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Guardar borrador")
+            }
+            OutlinedButton(
+                onClick = onDescartar,
+                enabled = !operacionEnCurso && hayCambiosSinGuardar,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Descartar cambios")
+            }
+        }
     }
 }
 
@@ -124,7 +185,7 @@ fun NotaScreen(estado: NotaUiState, modifier: Modifier = Modifier, onTitular: (S
 fun Borrador(texto: String, modifier: Modifier = Modifier) {
     Card(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text("Borrador", style = MaterialTheme.typography.titleMedium)
+            Text("Guardado en disco", style = MaterialTheme.typography.titleMedium)
             if (texto.isEmpty()) {
                 Text(
                     "No hay borrador guardado",
@@ -179,6 +240,8 @@ fun NotaScreenHost(notaViewModel: NotaViewModel, modifier: Modifier){
         onTitular = notaViewModel::onTitularChange,
         onContenido = notaViewModel::onContenidoChange,
         onGuardar = notaViewModel::onGuardar,
+        onGuardarBorrador = notaViewModel::escribirArchivo,
+        onDescartar = notaViewModel::descartarCambios,
         modifier = modifier
     )
 }
@@ -202,7 +265,9 @@ fun NotaScreenPreview() {
             // En el Preview no hay nadie que maneje los eventos: lambdas vacías
             onTitular = {},
             onContenido = {},
-            onGuardar = {}
+            onGuardar = {},
+            onGuardarBorrador = {},
+            onDescartar = {}
         )
     }
 }

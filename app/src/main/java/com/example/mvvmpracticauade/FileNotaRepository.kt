@@ -6,5 +6,7 @@ interface FileNotaRepository {
 
     suspend fun leerArchivo(): String
 
+    suspend fun escribirArchivo(texto: String): Boolean
+
 
 }

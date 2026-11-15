@@ -26,13 +26,6 @@ class NotaViewModel (private val repository: NotaRepository = NotaRepositoryEnMe
         leerArchivo()
 
     }
-
-
-
-
-    //var estado by mutableStateOf(NotaUiState())
-    //private set
-
     private var intentosDeGuardado = 0
 
     // Cada campo limpia solo su propio error al editarse
@@ -57,7 +50,6 @@ class NotaViewModel (private val repository: NotaRepository = NotaRepositoryEnMe
             if (estado.titulo.isBlank()) "El título no puede estar vacío" else ""
         val errorContenido =
             if (estado.contenido.trim().length < 10) "El contenido debe tener al menos 10 caracteres" else ""
-
         _uiState.update { it.copy(errorTitulo = errorTitulo, errorContenido = errorContenido) }
 
         // Si hay algún error, no se guarda
@@ -66,31 +58,18 @@ class NotaViewModel (private val repository: NotaRepository = NotaRepositoryEnMe
         viewModelScope.launch {
 
             _uiState.update { it.copy(operacionEnCurso = true) }
-
             delay(1000.milliseconds)
-
             val notaNew = Nota(nombre = estado.titulo, contenido = estado.contenido)
-
             repository.guardar(notaNew)
-
             _uiState.update { it.copy(operacionEnCurso = false) }
-
             obtenerTodasLasNotas()
-
             _uiState.update {  it.copy(titulo = "", contenido = "") }
 
-
-
         }
-
-
     }
 
     fun obtenerTodasLasNotas() {
-
-
      viewModelScope.launch {
-
 
          _uiState.update { it.copy(operacionEnCurso = true) }
 
@@ -99,17 +78,46 @@ class NotaViewModel (private val repository: NotaRepository = NotaRepositoryEnMe
          _uiState.update { it.copy(operacionEnCurso = false) }
     }
 
-
-
     }
 
     fun leerArchivo(){
+
+        var archivoLeido = ""
+        var titulo = ""
+        var contenido = ""
+
         viewModelScope.launch {
             _uiState.update { it.copy(operacionEnCurso = true) }
-            _uiState.update { it.copy(archivoTexto = fileRepository.leerArchivo()) }
+
+            archivoLeido = fileRepository.leerArchivo()
+
+            if (archivoLeido.isNotEmpty()){
+                val partes = archivoLeido.split("\n")
+                titulo = partes[0]
+                contenido = partes.subList(1, partes.size).joinToString("\n")}
+            _uiState.update {it.copy(titulo= titulo, contenido = contenido, archivoTexto = archivoLeido) }
             _uiState.update { it.copy(operacionEnCurso = false) }
             }
     }
+
+     fun descartarCambios(){
+         leerArchivo()
+     }
+
+     fun escribirArchivo(){
+
+         val nuevoTexto = _uiState.value.titulo + "\n" + _uiState.value.contenido
+
+         viewModelScope.launch {
+             _uiState.update { it.copy(operacionEnCurso = true) }
+             val guardado = fileRepository.escribirArchivo(nuevoTexto)
+             if (guardado){
+                 _uiState.update { it.copy(archivoTexto = nuevoTexto) }
+             }
+             _uiState.update { it.copy(operacionEnCurso = false) }
+         }
+
+     }
 
 
 
