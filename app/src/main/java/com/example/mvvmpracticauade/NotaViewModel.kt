@@ -12,11 +12,18 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
-class NotaViewModel : ViewModel() {
+class NotaViewModel (private val repository: NotaRepository = NotaRepositoryEnMemoria() ) : ViewModel() {
 // Estado y operaciones; no dibujar UI aqui
 
     private val _uiState = MutableStateFlow(NotaUiState())
     val uiState: StateFlow<NotaUiState> = _uiState.asStateFlow()
+
+    init {
+        obtenerTodasLasNotas()
+
+    }
+
+
 
 
     //var estado by mutableStateOf(NotaUiState())
@@ -53,10 +60,43 @@ class NotaViewModel : ViewModel() {
         if (errorTitulo.isNotEmpty() || errorContenido.isNotEmpty()) return
 
         viewModelScope.launch {
+
             _uiState.update { it.copy(operacionEnCurso = true) }
-            delay(1500.milliseconds)   // simula el guardado
-            _uiState.update { it.copy(operacionEnCurso = false, titulo = "", contenido = "") }
+
+            delay(1000.milliseconds)
+
+            val notaNew = Nota(nombre = estado.titulo, contenido = estado.contenido)
+
+            repository.guardar(notaNew)
+
+            _uiState.update { it.copy(operacionEnCurso = false) }
+
+            obtenerTodasLasNotas()
+
+            _uiState.update {  it.copy(titulo = "", contenido = "") }
+
+
+
         }
+
+
+    }
+
+    fun obtenerTodasLasNotas() {
+
+
+     viewModelScope.launch {
+
+
+         _uiState.update { it.copy(operacionEnCurso = true) }
+
+        _uiState.update { it.copy(notas = repository.obtenerTodas()) }
+
+         _uiState.update { it.copy(operacionEnCurso = false) }
+    }
+
+
+
     }
 
 

@@ -10,7 +10,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -23,6 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mvvmpracticauade.ui.theme.MVVMPracticaUADETheme
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,6 +48,7 @@ class MainActivity : ComponentActivity() {
 }
 
 data class Nota(
+    val id: String = UUID.randomUUID().toString(),
     val nombre: String,
     val contenido: String
 )
@@ -93,6 +98,33 @@ fun NotaScreen(estado: NotaUiState, modifier: Modifier = Modifier, onTitular: (S
                 Text("Guardar")
             }
         }
+
+        // weight(1f): la lista ocupa el espacio que queda debajo del formulario y scrollea ahi
+        ListaNotas(notas = estado.notas, modifier = Modifier.weight(1f))
+    }
+}
+
+// Solo dibuja las notas que recibe. No sabe de donde vienen (ni del ViewModel ni del Repository).
+@Composable
+fun ListaNotas(notas: List<Nota>, modifier: Modifier = Modifier) {
+    if (notas.isEmpty()) {
+        Text("Todavía no hay notas", modifier = modifier)
+        return
+    }
+
+    LazyColumn(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // key = id: Compose identifica cada fila por su nota, no por su posicion
+        items(notas, key = { it.id }) { nota ->
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(nota.nombre, style = MaterialTheme.typography.titleMedium)
+                    Text(nota.contenido, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
     }
 }
 
@@ -121,7 +153,11 @@ fun NotaScreenPreview() {
                 titulo = "Compras",
                 contenido = "",
                 errorContenido = "El contenido debe tener al menos 10 caracteres",
-                operacionEnCurso = false
+                operacionEnCurso = false,
+                notas = listOf(
+                    Nota(nombre = "Ideas proyecto", contenido = "Armar el repository en memoria"),
+                    Nota(nombre = "Turno médico", contenido = "Martes 10 hs, llevar estudios")
+                )
             ),
             // En el Preview no hay nadie que maneje los eventos: lambdas vacías
             onTitular = {},
