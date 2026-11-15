@@ -99,6 +99,13 @@ class NotaViewModel (private val repository: NotaRepository,
 
      }
 
+     // Sale del modo edición sin guardar: el formulario vuelve a "nota nueva"
+     fun onCancelarEdicion() {
+         _uiState.update {
+             it.copy(titulo = "", contenido = "", idEnEdicion = "", errorTitulo = "", errorContenido = "")
+         }
+     }
+
     fun obtenerTodasLasNotas() {
      viewModelScope.launch {
 

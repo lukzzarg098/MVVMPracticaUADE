@@ -86,7 +86,8 @@ fun NotaScreen(
     onDescartar: () -> Unit,
     onReintentar: () -> Unit,
     onSeleccionarNota: (Nota) -> Unit,
-    onEliminar: (String) -> Unit
+    onEliminar: (String) -> Unit,
+    onCancelarEdicion: () -> Unit
 ) {
     Column(
         modifier = modifier
@@ -115,16 +116,32 @@ fun NotaScreen(
         )
 
 
-        Button(
-            onClick = onGuardar,
-            enabled = !estado.operacionEnCurso,
-            modifier = Modifier.fillMaxWidth()
+        val editando = estado.idEnEdicion.isNotEmpty()
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            if (estado.operacionEnCurso) {
-                CircularProgressIndicator()
-            } else {
-                // Si hay una nota seleccionada, guardar la reemplaza en vez de crear una nueva
-                Text(if (estado.idEnEdicion.isNotEmpty()) "Guardar cambios" else "Guardar nota")
+            Button(
+                onClick = onGuardar,
+                enabled = !estado.operacionEnCurso,
+                modifier = Modifier.weight(1f)
+            ) {
+                if (estado.operacionEnCurso) {
+                    CircularProgressIndicator()
+                } else {
+                    // Si hay una nota seleccionada, guardar la reemplaza en vez de crear una nueva
+                    Text(if (editando) "Guardar cambios" else "Guardar nota")
+                }
+            }
+            // Cancelar solo aparece en modo edición
+            if (editando) {
+                OutlinedButton(
+                    onClick = onCancelarEdicion,
+                    enabled = !estado.operacionEnCurso,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Cancelar")
+                }
             }
         }
 
@@ -331,6 +348,7 @@ fun NotaScreenHost(notaViewModel: NotaViewModel, modifier: Modifier){
         onReintentar = notaViewModel::leerArchivo,
         onSeleccionarNota = notaViewModel::onSeleccionarNota,
         onEliminar = notaViewModel::onEliminar,
+        onCancelarEdicion = notaViewModel::onCancelarEdicion,
         modifier = modifier
     )
 }
@@ -359,7 +377,8 @@ fun NotaScreenPreview() {
             onDescartar = {},
             onReintentar = {},
             onSeleccionarNota = {},
-            onEliminar = {}
+            onEliminar = {},
+            onCancelarEdicion = {}
         )
     }
 }
