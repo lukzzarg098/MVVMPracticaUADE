@@ -6,6 +6,7 @@ data class NotaUiState(
 
 
     val notas: List<Nota> = emptyList(),
+    val idEnEdicion: String = "",
     val archivoTexto: String = "",
     val titulo: String = "",
     val contenido: String = "",

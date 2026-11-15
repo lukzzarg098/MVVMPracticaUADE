@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -45,7 +46,7 @@ class MainActivity : ComponentActivity() {
         val archivoTextoRepository: FileNotaRepository =
             //FileNotaRepositoryConError()
             FileNotaRepositoryImplementacion(applicationContext.filesDir)
-        val notaRepository: NotaRepository = NotaRepositoryPrecargado()
+        val notaRepository: NotaRepository = NotaRepositoryEnJSON(applicationContext.filesDir)
 
         val viewModel: NotaViewModel by viewModels{
             viewModelFactory {
@@ -83,7 +84,9 @@ fun NotaScreen(
     onGuardar: () -> Unit,
     onGuardarBorrador: () -> Unit,
     onDescartar: () -> Unit,
-    onReintentar: () -> Unit
+    onReintentar: () -> Unit,
+    onSeleccionarNota: (Nota) -> Unit,
+    onEliminar: (String) -> Unit
 ) {
     Column(
         modifier = modifier
@@ -120,7 +123,8 @@ fun NotaScreen(
             if (estado.operacionEnCurso) {
                 CircularProgressIndicator()
             } else {
-                Text("Guardar nota")
+                // Si hay una nota seleccionada, guardar la reemplaza en vez de crear una nueva
+                Text(if (estado.idEnEdicion.isNotEmpty()) "Guardar cambios" else "Guardar nota")
             }
         }
 
@@ -137,7 +141,14 @@ fun NotaScreen(
         Borrador(texto = estado.archivoTexto)
 
         // weight(1f): la lista ocupa el espacio que queda debajo del formulario y scrollea ahi
-        ListaNotas(notas = estado.notas, modifier = Modifier.weight(1f))
+        ListaNotas(
+            notas = estado.notas,
+            idEnEdicion = estado.idEnEdicion,
+            operacionEnCurso = estado.operacionEnCurso,
+            onSeleccionarNota = onSeleccionarNota,
+            onEliminar = onEliminar,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
@@ -243,8 +254,16 @@ fun Borrador(texto: String, modifier: Modifier = Modifier) {
 }
 
 // Solo dibuja las notas que recibe. No sabe de donde vienen (ni del ViewModel ni del Repository).
+// Tocar una tarjeta la selecciona para editar; "Eliminar" avisa el id hacia arriba.
 @Composable
-fun ListaNotas(notas: List<Nota>, modifier: Modifier = Modifier) {
+fun ListaNotas(
+    notas: List<Nota>,
+    idEnEdicion: String,
+    operacionEnCurso: Boolean,
+    onSeleccionarNota: (Nota) -> Unit,
+    onEliminar: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
     if (notas.isEmpty()) {
         Text("Todavía no hay notas", modifier = modifier)
         return
@@ -256,10 +275,39 @@ fun ListaNotas(notas: List<Nota>, modifier: Modifier = Modifier) {
     ) {
         // key = id: Compose identifica cada fila por su nota, no por su posicion
         items(notas, key = { it.id }) { nota ->
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(nota.nombre, style = MaterialTheme.typography.titleMedium)
-                    Text(nota.contenido, style = MaterialTheme.typography.bodyMedium)
+            val enEdicion = nota.id == idEnEdicion
+            Card(
+                onClick = { onSeleccionarNota(nota) },
+                enabled = !operacionEnCurso,
+                // La nota que se está editando se resalta con otro color
+                colors = if (enEdicion) {
+                    CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                } else {
+                    CardDefaults.cardColors()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(start = 12.dp, top = 12.dp, bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        if (enEdicion) {
+                            Text(
+                                "Editando",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                        Text(nota.nombre, style = MaterialTheme.typography.titleMedium)
+                        Text(nota.contenido, style = MaterialTheme.typography.bodyMedium)
+                    }
+                    TextButton(
+                        onClick = { onEliminar(nota.id) },
+                        enabled = !operacionEnCurso
+                    ) {
+                        Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         }
@@ -281,6 +329,8 @@ fun NotaScreenHost(notaViewModel: NotaViewModel, modifier: Modifier){
         onGuardarBorrador = notaViewModel::escribirArchivo,
         onDescartar = notaViewModel::descartarCambios,
         onReintentar = notaViewModel::leerArchivo,
+        onSeleccionarNota = notaViewModel::onSeleccionarNota,
+        onEliminar = notaViewModel::onEliminar,
         modifier = modifier
     )
 }
@@ -307,7 +357,9 @@ fun NotaScreenPreview() {
             onGuardar = {},
             onGuardarBorrador = {},
             onDescartar = {},
-            onReintentar = {}
+            onReintentar = {},
+            onSeleccionarNota = {},
+            onEliminar = {}
         )
     }
 }

@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 import java.io.IOException
 import kotlin.time.Duration.Companion.milliseconds
 
-class NotaViewModel (private val repository: NotaRepository = NotaRepositoryEnMemoria(),
+class NotaViewModel (private val repository: NotaRepository,
                      private val fileRepository: FileNotaRepository
 ) : ViewModel()
  {
@@ -60,14 +60,44 @@ class NotaViewModel (private val repository: NotaRepository = NotaRepositoryEnMe
 
             _uiState.update { it.copy(operacionEnCurso = true) }
             delay(1000.milliseconds)
-            val notaNew = Nota(nombre = estado.titulo, contenido = estado.contenido)
-            repository.guardar(notaNew)
-            _uiState.update { it.copy(operacionEnCurso = false) }
+
+            if (estado.idEnEdicion.isNotEmpty()){
+                val nota = Nota(id = estado.idEnEdicion, nombre = estado.titulo, contenido = estado.contenido)
+                repository.guardar(nota)
+                _uiState.update { it.copy(operacionEnCurso = false) }
+            }
+            else{
+                val nota = Nota(nombre = estado.titulo, contenido = estado.contenido)
+                repository.guardar(nota)
+                _uiState.update { it.copy(operacionEnCurso = false) }
+
+            }
             obtenerTodasLasNotas()
-            _uiState.update {  it.copy(titulo = "", contenido = "") }
+            _uiState.update {  it.copy(titulo = "", contenido = "", idEnEdicion = "") }
 
         }
     }
+
+     fun onEliminar(id: String){
+         viewModelScope.launch {
+             _uiState.update { it.copy(operacionEnCurso = true) }
+             if (id == _uiState.value.idEnEdicion){
+                 _uiState.update { it.copy(titulo = "", contenido = "", idEnEdicion = "") }
+             }
+             repository.eliminar(id)
+             _uiState.update { it.copy(operacionEnCurso = false) }
+             obtenerTodasLasNotas()
+
+         }
+     }
+
+     fun onSeleccionarNota(nota: Nota){
+
+             _uiState.update { it.copy(operacionEnCurso = true) }
+             _uiState.update{it.copy(idEnEdicion = nota.id, titulo = nota.nombre, contenido = nota.contenido) }
+             _uiState.update { it.copy(operacionEnCurso = false) }
+
+     }
 
     fun obtenerTodasLasNotas() {
      viewModelScope.launch {
