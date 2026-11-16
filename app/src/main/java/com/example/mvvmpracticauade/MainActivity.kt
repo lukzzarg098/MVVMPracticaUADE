@@ -41,19 +41,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // PRUEBA Ejercicio 9: repositorio que siempre falla. Para volver al real, descomentar la línea de abajo
-        // y borrar FileNotaRepositoryConError().
-        val archivoTextoRepository: FileNotaRepository =
-            //FileNotaRepositoryConError()
-            FileNotaRepositoryImplementacion(applicationContext.filesDir)
-        val notaRepository: NotaRepository = NotaRepositoryEnJSON(applicationContext.filesDir)
 
         val viewModel: NotaViewModel by viewModels{
             viewModelFactory {
-                initializer { NotaViewModel(notaRepository, archivoTextoRepository) }
+                initializer {
+                    val application = (application as MyApplication)
+                    NotaViewModel(application.notaRepository, application.archivoTextoRepository)
+                }
             }
         }
-
 
         enableEdgeToEdge()
         setContent {
