@@ -16,6 +16,8 @@ data class NotaDetalleUiState(
     val errorContenido: String = "",
     val errorFalloLectura: String = "",
     val errorFalloEscritura: String = "",
+    // Error al guardar la nota en el Repository (distinto de los errores del borrador)
+    val errorGuardado: String = "",
     // Se pone en true cuando la nota terminó de guardarse: la pantalla lo usa para volver a la lista
     val guardadoCompleto: Boolean = false
 ) {

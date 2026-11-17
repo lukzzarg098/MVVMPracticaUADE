@@ -173,6 +173,14 @@ fun NotaDetalleScreen(
             }
         }
 
+        if (estado.errorGuardado.isNotEmpty()) {
+            Text(
+                estado.errorGuardado,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
         AccionesBorrador(
             hayCambiosSinGuardar = estado.hayCambiosSinGuardar,
             enCurso = estado.lecturaEscrituraEnCurso,

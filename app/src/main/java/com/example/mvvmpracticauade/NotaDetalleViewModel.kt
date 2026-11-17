@@ -70,29 +70,29 @@ class NotaDetalleViewModel(private val repository: NotaRepository,
 
         viewModelScope.launch {
 
-            _uiState.update { it.copy(operacionEnCurso = true) }
+            _uiState.update { it.copy(operacionEnCurso = true, errorGuardado = "") }
             delay(1000.milliseconds)
 
-            if (estado.idEnEdicion.isNotEmpty()) {
-                val nota = Nota(
-                    id = estado.idEnEdicion,
-                    nombre = estado.titulo,
-                    contenido = estado.contenido
-                )
-                repository.guardar(nota)
-                _uiState.update { it.copy(operacionEnCurso = false) }
+            // Nota existente: se guarda con el mismo id (el Repository la reemplaza).
+            // Nota nueva: Nota() le genera un id nuevo.
+            val nota = if (estado.idEnEdicion.isNotEmpty()) {
+                Nota(id = estado.idEnEdicion, nombre = estado.titulo, contenido = estado.contenido)
             } else {
-                val nota = Nota(nombre = estado.titulo, contenido = estado.contenido)
-                repository.guardar(nota)
-                _uiState.update { it.copy(operacionEnCurso = false) }
-
+                Nota(nombre = estado.titulo, contenido = estado.contenido)
             }
-            // Avisa que terminó de guardar: la pantalla vuelve a la lista recién ahora,
-            // así el guardado no se corta a la mitad
-            _uiState.update { it.copy(guardadoCompleto = true) }
 
-
-
+            try {
+                repository.guardar(nota)
+                // Avisa que terminó de guardar: la pantalla vuelve a la lista recién ahora,
+                // así el guardado no se corta a la mitad
+                _uiState.update { it.copy(operacionEnCurso = false, guardadoCompleto = true) }
+            } catch (e: IOException) {
+                // Si el Repository falla no se vuelve a la lista: los cambios siguen en pantalla
+                // y el usuario puede reintentar. Sin este catch la excepción cerraba la app.
+                _uiState.update {
+                    it.copy(operacionEnCurso = false, errorGuardado = "No se pudo guardar la nota. Probá de nuevo.")
+                }
+            }
         }
     }
 

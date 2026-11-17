@@ -33,6 +33,11 @@ android {
     buildFeatures {
         compose = true
     }
+    // En los tests de JVM no existe Android: sin esto, el Log.d de onGuardar tira
+    // "Method d in android.util.Log not mocked". Con esto, Log.d simplemente no hace nada.
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -47,6 +52,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
