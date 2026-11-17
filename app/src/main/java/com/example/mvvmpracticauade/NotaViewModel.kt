@@ -3,6 +3,9 @@ package com.example.mvvmpracticauade
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,71 +22,27 @@ class NotaViewModel (private val repository: NotaRepository,
  {
 // Estado y operaciones; no dibujar UI aqui
 
+     // Cómo se crea este ViewModel: saca los Repositories de MyApplication (se crean una sola vez)
+     companion object {
+         val Factory: ViewModelProvider.Factory = viewModelFactory {
+             initializer {
+                 val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as MyApplication
+                 NotaViewModel(application.notaRepository, application.archivoTextoRepository)
+             }
+         }
+     }
+
     private val _uiState = MutableStateFlow(NotaUiState())
     val uiState: StateFlow<NotaUiState> = _uiState.asStateFlow()
 
-    init {
-        obtenerTodasLasNotas()
-        leerArchivo()
 
-    }
-    private var intentosDeGuardado = 0
-
-    // Cada campo limpia solo su propio error al editarse
-    fun onTitularChange(nuevoTitular: String) {
-        _uiState.update { it.copy(titulo = nuevoTitular, errorTitulo = "") }
-    }
-
-    fun onContenidoChange(nuevoContenido: String) {
-        _uiState.update { it.copy(contenido = nuevoContenido, errorContenido = "") }
-    }
-
-    fun onGuardar() {
-        intentosDeGuardado++
-        Log.d("NotaViewModel", "Intentos de guardado: $intentosDeGuardado")
-
-        // Regla: no guardar dos veces mientras se procesa una solicitud
-        if (_uiState.value.operacionEnCurso) return
-
-        // Cada regla se evalúa por separado para poder mostrar los dos errores a la vez
-        val estado = _uiState.value
-        val errorTitulo =
-            if (estado.titulo.isBlank()) "El título no puede estar vacío" else ""
-        val errorContenido =
-            if (estado.contenido.trim().length < 10) "El contenido debe tener al menos 10 caracteres" else ""
-        _uiState.update { it.copy(errorTitulo = errorTitulo, errorContenido = errorContenido) }
-
-        // Si hay algún error, no se guarda
-        if (errorTitulo.isNotEmpty() || errorContenido.isNotEmpty()) return
-
-        viewModelScope.launch {
-
-            _uiState.update { it.copy(operacionEnCurso = true) }
-            delay(1000.milliseconds)
-
-            if (estado.idEnEdicion.isNotEmpty()){
-                val nota = Nota(id = estado.idEnEdicion, nombre = estado.titulo, contenido = estado.contenido)
-                repository.guardar(nota)
-                _uiState.update { it.copy(operacionEnCurso = false) }
-            }
-            else{
-                val nota = Nota(nombre = estado.titulo, contenido = estado.contenido)
-                repository.guardar(nota)
-                _uiState.update { it.copy(operacionEnCurso = false) }
-
-            }
-            obtenerTodasLasNotas()
-            _uiState.update {  it.copy(titulo = "", contenido = "", idEnEdicion = "") }
-
-        }
-    }
 
      fun onEliminar(id: String){
          viewModelScope.launch {
              _uiState.update { it.copy(operacionEnCurso = true) }
-             if (id == _uiState.value.idEnEdicion){
-                 _uiState.update { it.copy(titulo = "", contenido = "", idEnEdicion = "") }
-             }
+             //if (id == _uiState.value.idEnEdicion){
+            //     _uiDetalleState.update { it.copy(titulo = "", contenido = "", idEnEdicion = "") }
+             //}
              repository.eliminar(id)
              _uiState.update { it.copy(operacionEnCurso = false) }
              obtenerTodasLasNotas()
@@ -91,20 +50,9 @@ class NotaViewModel (private val repository: NotaRepository,
          }
      }
 
-     fun onSeleccionarNota(nota: Nota){
+     // Seleccionar una nota ya no pasa por acá: la pantalla navega a "detalle/{id}"
+     // y el NotaDetalleViewModel carga la nota del Repository con ese id.
 
-             _uiState.update { it.copy(operacionEnCurso = true) }
-             _uiState.update{it.copy(idEnEdicion = nota.id, titulo = nota.nombre, contenido = nota.contenido) }
-             _uiState.update { it.copy(operacionEnCurso = false) }
-
-     }
-
-     // Sale del modo edición sin guardar: el formulario vuelve a "nota nueva"
-     fun onCancelarEdicion() {
-         _uiState.update {
-             it.copy(titulo = "", contenido = "", idEnEdicion = "", errorTitulo = "", errorContenido = "")
-         }
-     }
 
     fun obtenerTodasLasNotas() {
      viewModelScope.launch {
@@ -117,65 +65,6 @@ class NotaViewModel (private val repository: NotaRepository,
     }
 
     }
-
-    fun leerArchivo(){
-
-        var archivoLeido = ""
-        var titulo = ""
-        var contenido = ""
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(lecturaEscrituraEnCurso = true) }
-
-            try {
-
-                archivoLeido = fileRepository.leerArchivo()
-
-                if (archivoLeido.isNotEmpty()){
-                    val partes = archivoLeido.split("\n")
-                    titulo = partes[0]
-                    contenido = partes.subList(1, partes.size).joinToString("\n")}
-                _uiState.update {it.copy(titulo= titulo, contenido = contenido, archivoTexto = archivoLeido, errorFalloLectura = "") }
-
-            }
-            catch (e: IOException){
-                _uiState.update { it.copy(errorFalloLectura = "Error al leer el archivo") }
-            }
-
-
-            _uiState.update { it.copy(lecturaEscrituraEnCurso = false) }
-            }
-    }
-
-     fun descartarCambios(){
-         leerArchivo()
-     }
-
-     fun escribirArchivo(){
-
-         val nuevoTexto = _uiState.value.titulo + "\n" + _uiState.value.contenido
-
-         viewModelScope.launch {
-             _uiState.update { it.copy(lecturaEscrituraEnCurso = true) }
-
-             try{
-
-                  fileRepository.escribirArchivo(nuevoTexto)
-                 _uiState.update { it.copy(archivoTexto = nuevoTexto) }
-                 _uiState.update { it.copy(errorFalloEscritura = "") }
-
-             }
-             catch (e: IOException){
-
-                 _uiState.update { it.copy(errorFalloEscritura = "Error al escribir el archivo") }
-
-             }
-
-             _uiState.update { it.copy(lecturaEscrituraEnCurso = false) }
-         }
-
-     }
-
 
 
 

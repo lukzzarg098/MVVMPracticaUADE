@@ -9,6 +9,11 @@ import java.io.IOException
 
 class NotaRepositoryEnJSON(private val carpeta: File): NotaRepository {
 
+    override suspend fun obtenerNotaPorId(id: String): Nota? {
+        val lista = leerArchivo()
+        return lista.find { it.id == id }
+    }
+
 
     override suspend fun eliminar(id: String) {
         val lista = leerArchivo().toMutableList()

@@ -10,6 +10,10 @@ class NotaRepositoryPrecargado : NotaRepository {
         Nota(nombre = "Facultad", contenido = "Terminar la guía de MVVM y Repository")
     )
 
+    override suspend fun obtenerNotaPorId(id: String): Nota? {
+        return notas.find { it.id == id }
+    }
+
     // Devuelve una copia para que nadie de afuera pueda modificar la lista interna
     override suspend fun obtenerTodas(): List<Nota> = notas.toList()
 
