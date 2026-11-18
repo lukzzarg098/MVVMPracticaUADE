@@ -1,0 +1,19 @@
+package com.example.mvvmpracticauade
+
+import androidx.room.AutoMigration
+import androidx.room.Database
+import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+
+@Database(
+    entities = [NotaEntity::class],
+    version = 1,
+    exportSchema = true,
+)
+
+abstract class AppDataBase : RoomDatabase() {
+    abstract fun notaDao(): NotaDAO
+
+}
+
+
